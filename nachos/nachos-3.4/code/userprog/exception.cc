@@ -86,41 +86,50 @@ ExceptionHandler(ExceptionType which)
     switch (which) {
     case NoException: return;
     case PageFaultException:
-        DEBUG('a', "No valid translation found.\n");
+        DEBUG('a', "\n No valid translation found.");
+        printf("\n\n No valid translation found.")
         interrupt->Halt();
         break;
     case ReadOnlyException:
-        DEBUG('a', "Write attempted to page marked \"read-only\".\n");
+        DEBUG('a', "\n Write attempted to page marked \"read-only\".");
+        printf("\n\n Write attempted to page marked \"read-only\".");
         interrupt->Halt();
         break;
     case BusErrorException:
-        DEBUG('a', "Translation resulted in an invalid physical address.\n");
+        DEBUG('a', "\n Translation resulted in an invalid physical address.");
+        printf("\n\n Translation resulted in an invalid physical address.");
         interrupt->Halt();
         break;
     case AddressErrorException:
-        DEBUG('a', "Unaligned reference or one that was beyond the end of the address space.\n");
+        DEBUG('a', "\n Unaligned reference or one that was beyond the end of the address space.");
+        printf("\n\n Unaligned reference or one that was beyond the end of the address space.");
         interrupt->Halt();
         break;
     case OverflowException:
-        DEBUG('a', "Integer overflow in add or sub.\n");
+        DEBUG('a', "\n Integer overflow in add or sub.");
+        printf("\n\n Integer overflow in add or sub.");
         interrupt->Halt();
         break;
     case IllegalInstrException:
-        DEBUG('a', "Unimplemented or reserved instr.\n");
+        DEBUG('a', "\n Unimplemented or reserved instr.");
+        printf("\n\n Unimplemented or reserved instr.");
         interrupt->Halt();
         break;
     case NumExceptionTypes:
-        DEBUG('a', "Number Exception Types.\n");
+        DEBUG('a', "\n Number Exception Types.");
+        printf("\n\n Number Exception Types.");
         interrupt->Halt();
         break;
     case SyscallException:
         switch (type) {
         case SC_Halt:
-            DEBUG('a', "Shutdown, initiated by user program.\n");
+            DEBUG('a', "\n Shutdown, initiated by user program.");
+            printf ("\n\n Shutdown, initiated by user program.");
             interrupt->Halt();
+        default:
+            printf("\n Unexpected user mode exception %d %d\n", which, type);
+            interrupt->Halt();
+            // ASSERT(FALSE);
         }
-    default:
-        printf("Unexpected user mode exception %d %d\n", which, type);
-        ASSERT(FALSE);
     }
 }
