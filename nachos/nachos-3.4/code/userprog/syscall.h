@@ -29,6 +29,7 @@
 #define SC_Close	8
 #define SC_Fork		9
 #define SC_Yield	10
+#define SC_ReadInt	11
 
 #ifndef IN_ASM
 
@@ -123,6 +124,17 @@ void Fork(void (*func)());
  * or not. 
  */
 void Yield();		
+
+
+
+/* System calls that provide standard operations: ReadInt.
+ * To allow user interactions in a program.
+ */
+
+/* Read a single integer input from user (using SynchConsole class) and return it.
+ * Return 0 if the input is not an integer.
+ */
+int ReadInt();
 
 #endif /* IN_ASM */
 
