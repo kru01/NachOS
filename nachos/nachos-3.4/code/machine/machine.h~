@@ -149,14 +149,7 @@ class Machine {
 // Routines for copying memory space from UserSpace to SystemSpace (KernelSpace) and vice versa
 
     char* User2System(int virtAddr, int limit);
-                                // Copy buffer from user memory space to system
-                                // memory space. Take in userspace address (virtAddr)
-                                // and buffer limit. Return buffer in system space.
     int System2User(int virtAddr, int len, char* buffer);
-                                // Copy buffer from system memory space to user
-                                // memory space. Take in userspace address (virtAddr),
-                                // buffer limit and the buffer in system space. Return
-                                // the number of bytes copied.
 
 // Data structures -- all of these are accessible to Nachos kernel code.
 // "public" for convenience.

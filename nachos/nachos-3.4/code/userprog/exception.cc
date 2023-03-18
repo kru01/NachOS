@@ -108,7 +108,7 @@ ReadIntHandler()
                     printf("\n\n Invalid integer inputted.");
                     machine->WriteRegister(2, 0);
                     IncreaseProgramCounter();
-                    delete buffer;
+                    delete[] buffer;
                     return;
                 }
             endInd = i - 1; // if it's X.000 then we only get X
@@ -118,7 +118,7 @@ ReadIntHandler()
             printf("\n\n Invalid integer inputted.");
             machine->WriteRegister(2, 0);
             IncreaseProgramCounter();
-            delete buffer;
+            delete[] buffer;
             return;
         }
         endInd = i;
@@ -129,8 +129,126 @@ ReadIntHandler()
     if (buffer[0] == '-') output *= -1; // apply negativity if exists
     machine->WriteRegister(2, output);
     IncreaseProgramCounter();
-    delete buffer;
-    return;
+    delete[] buffer;
+}
+
+//----------------------------------------------------------------------
+// PrintIntHandler
+// 	Function to print integer to console.
+//----------------------------------------------------------------------
+
+void
+PrintIntHandler()
+{
+    char* buffer, neg = '-';
+    int MAX_BUFFER = 255, number = machine->ReadRegister(4);
+    buffer = new char[MAX_BUFFER + 1];
+
+    if (number < 0) { // if negative, we print the '-' first then proceed as if the number was positive
+        gSynchConsole->Write(&neg, 1);
+        number *= -1;
+    }
+
+    int size = 0;
+    while (number != 0) { // read all digits into char array, the number will be in reverse
+        buffer[size++] = number % 10 + 48;
+        number /= 10;
+    }
+    buffer[size] = '\0';
+
+    int start = 0, end = 0;
+    char temp = ' ';
+    end = size - 1;
+    while (start < end) { // reversing the char array to get the correct number
+        temp = buffer[start];
+        buffer[start] = buffer[end];
+        buffer[end] = temp;
+        start++;
+        end--;
+    }
+    gSynchConsole->Write(buffer, size);
+    IncreaseProgramCounter();
+    delete[] buffer;
+}
+
+//----------------------------------------------------------------------
+// ReadCharHandler
+// 	Function to read character input from user and return it.
+//      Return 0 if nothing or more than one character was inputted.
+//----------------------------------------------------------------------
+
+void
+ReadCharHandler()
+{
+    char* buffer;
+    int MAX_BUFFER = 255;
+    buffer = new char[MAX_BUFFER + 1];
+    int inputLen = gSynchConsole->Read(buffer, MAX_BUFFER);
+
+    if(inputLen == 0) {
+        DEBUG('a', "\n No character received.");
+        printf("\n\n No character received.");
+        machine->WriteRegister(2, 0);
+    } else if (inputLen > 1) {
+        DEBUG('a', "\n More than one character inputted.");
+        printf("\n\n More than one character inputted.");
+        machine->WriteRegister(2, 0);
+    } else machine->WriteRegister(2, buffer[0]);
+
+    IncreaseProgramCounter();
+    delete[] buffer;
+}
+
+//----------------------------------------------------------------------
+// PrintCharHandler
+// 	Function to print character to console.
+//----------------------------------------------------------------------
+
+void
+PrintCharHandler()
+{
+    char character = (char)machine->ReadRegister(4);
+    gSynchConsole->Write(&character, 1);
+    IncreaseProgramCounter();
+}
+
+//----------------------------------------------------------------------
+// ReadStringHandler
+// 	Function to read string input from user into buffer, the string ends
+//      when user hits enter or the length is already maxed out.
+//----------------------------------------------------------------------
+
+void
+ReadStringHandler()
+{
+    // get buffer address from r4 and max length from r5
+    int virtAddr = machine->ReadRegister(4), len = machine->ReadRegister(5);
+    char* buffer = machine->User2System(virtAddr, len); // get the buffer in system space
+    gSynchConsole->Read(buffer, len); // read the inputted string
+    machine->System2User(virtAddr, len, buffer); // copy string to user space
+    IncreaseProgramCounter();
+    delete[] buffer;
+}
+
+//----------------------------------------------------------------------
+// PrintStringHandler
+// 	Function to print string to console.
+//----------------------------------------------------------------------
+
+void
+PrintStringHandler()
+{
+    // get buffer address from r4
+    int virtAddr = machine->ReadRegister(4), MAX_BUFFER = 255;
+    char* buffer = machine->User2System(virtAddr, MAX_BUFFER);
+
+    int i = 0; // print one character at a time until we encounter
+    while (buffer[i] != 0 && buffer[i] != '\n') { // terminating char or endline
+        gSynchConsole->Write(buffer + i, 1);
+        i++;
+    }
+    IncreaseProgramCounter();
+    delete[] buffer;
 }
 
 //----------------------------------------------------------------------
@@ -189,11 +307,26 @@ ExceptionHandler(ExceptionType which)
         switch (type) {
         case SC_Halt:
             DEBUG('a', "\n Shutdown, initiated by user program.");
-            printf ("\n\n Shutdown, initiated by user program.");
+            printf("\n\n Shutdown, initiated by user program.");
             interrupt->Halt();
             break;
         case SC_ReadInt:
             ReadIntHandler();
+            break;
+        case SC_PrintInt:
+            PrintIntHandler();
+            break;
+        case SC_ReadChar:
+            ReadCharHandler();
+            break;
+        case SC_PrintChar:
+            PrintCharHandler();
+            break;
+        case SC_ReadString:
+            ReadStringHandler();
+            break;
+        case SC_PrintString:
+            PrintStringHandler();
             break;
         default:
             printf("\n Unexpected user mode exception %d %d\n", which, type);
