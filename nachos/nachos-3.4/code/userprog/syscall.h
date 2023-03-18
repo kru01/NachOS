@@ -30,6 +30,11 @@
 #define SC_Fork		9
 #define SC_Yield	10
 #define SC_ReadInt	11
+#define SC_PrintInt	12
+#define SC_ReadChar	13
+#define SC_PrintChar	14
+#define SC_ReadString	15
+#define SC_PrintString	16
 
 #ifndef IN_ASM
 
@@ -135,6 +140,28 @@ void Yield();
  * Return 0 if the input is not an integer.
  */
 int ReadInt();
+
+/* Print a single integer to console (using SynchConsole class).
+ */
+void PrintInt(int number);
+
+/* Read a single character input from user (using SynchConsole class) and return it.
+ * Return 0 if nothing or more than one character was inputted.
+ */
+char ReadChar();
+
+/* Print a single character to console (using SynchConsole class).
+ */
+void PrintChar(char character);
+
+/* Read string input from user (using SynchConsole class) into buffer, the string ends
+ * when user hits enter or the length is already maxed out.
+ */
+void ReadString(char buffer[], int length);
+
+/* Print string to console (using SynchConsole class).
+ */
+void PrintString(char buffer[]);
 
 #endif /* IN_ASM */
 

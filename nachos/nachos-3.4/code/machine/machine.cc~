@@ -233,16 +233,3 @@ char* Machine::User2System(int virtAddr, int limit)
     }
     return kernelBuf;
 }
-
-int Machine::System2User(int virtAddr, int len, char* buffer)
-{
-    if (len < 0) return -1;
-    if (len == 0) return len;
-    int i = 0, ch = 0;
-    do {
-        ch = (int) buffer[i];
-        WriteMem(virtAddr + i, 1, ch);
-        i++;
-    } while (i < len && ch != 0);
-    return i;
-}

@@ -68,6 +68,6 @@ matmult: matmult.o start.o
 
 readprint.o: readprint.c
 	$(CC) $(CFLAGS) -c readprint.c
-readprint: readprint.o start.o
+readprint: matmult.o start.o
 	$(LD) $(LDFLAGS) start.o readprint.o -o readprint.coff
 	../bin/coff2noff readprint.coff readprint
