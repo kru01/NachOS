@@ -132,7 +132,7 @@ void Yield();
 
 
 
-/* System calls that provide standard operations: ReadInt.
+/* System calls that provide standard operations: ReadInt, PrintInt, ReadChar, PrintChar, ReadString, PrintString.
  * To allow user interactions in a program.
  */
 

@@ -150,6 +150,7 @@ All of the user-level programs are stored in `nachos/nachos-3.4/code/test/`.
       ...
       }
       ```
+1. Recompile NachOS.
 
 ## Built With
 
