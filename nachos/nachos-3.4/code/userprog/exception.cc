@@ -142,6 +142,13 @@ PrintIntHandler()
 {
     char* buffer, neg = '-';
     int MAX_BUFFER = 255, number = machine->ReadRegister(4);
+
+    if (number == 0) { // handle 0 specially since it's the same as '\0'
+        gSynchConsole->Write("0", 1);
+        IncreaseProgramCounter();
+        return;
+    }
+
     buffer = new char[MAX_BUFFER + 1];
 
     if (number < 0) { // if negative, we print the '-' first then proceed as if the number was positive
