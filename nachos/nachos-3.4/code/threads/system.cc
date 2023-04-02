@@ -29,7 +29,7 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
-SynchConsole *gSynchConsole;
+SynchConsole *gSynchConsole; // operations to read from and write to the console
 #endif
 
 #ifdef NETWORK
@@ -180,6 +180,7 @@ Cleanup()
     
 #ifdef USER_PROGRAM
     delete machine;
+    delete gSynchConsole;
 #endif
 
 #ifdef FILESYS_NEEDED
