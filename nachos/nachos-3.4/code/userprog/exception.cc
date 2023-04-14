@@ -84,6 +84,112 @@ IncreaseProgramCounter()
 }
 
 //----------------------------------------------------------------------
+// CreateFileHandler
+// 	Function to create a Nachos file, with "name".
+// 	Return 0 if successful, -1 otherwise.
+//----------------------------------------------------------------------
+
+void
+CreateFileHandler()
+{
+    // get buffer address from r4
+    int virtAddr = machine->ReadRegister(4);
+    int maxNameLen = 32;
+    char* filename = machine->User2System(virtAddr, maxNameLen + 1);
+
+    if (filename == NULL) {
+        DEBUG('a', "\n Unable to read filename.");
+        printf("\n\n Unable to read filename.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        delete[] filename;
+        return;
+    }
+
+    if (strlen(filename) == 0) {
+        DEBUG('a', "\n Invalid filename inputted.");
+        printf("\n\n Invalid filename inputted.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        delete[] filename;
+        return;
+    }
+
+    if (!fileSystem->Create(filename, 0)) {
+        DEBUG('a', "\n Failed to create file.");
+        printf("\n\n Failed to create file.");
+        machine->WriteRegister(2, -1);
+    } else {
+        printf("\n\n File successfully created.");
+        machine->WriteRegister(2, 0);
+    }
+    IncreaseProgramCounter();
+    delete[] filename;
+}
+
+//----------------------------------------------------------------------
+// OpenFileHandler
+//  Open the Nachos file "name", and return an "OpenFileId" that can 
+//  be used to read and write to the file.
+//  Return -1 if encounter errors.
+//----------------------------------------------------------------------
+
+void
+OpenFileHandler()
+{
+    // get buffer address from r4 and type from r5
+    int virtAddr = machine->ReadRegister(4), type = machine->ReadRegister(5);
+    int maxNameLen = 32;
+    char* filename = machine->User2System(virtAddr, maxNameLen + 1);
+    
+    int freeSlot = fileSystem->GetFreeSlot();
+    if (freeSlot == -1) {
+        DEBUG('a', "\n Unable to open file.");
+        printf("\n\n Unable to open file.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        delete[] filename;
+        return;
+    }
+
+    if (type == 0 || type == 1) {
+        if ((fileSystem->openf[freeSlot] = fileSystem->Open(filename, type)) != NULL)
+            machine->WriteRegister(2, freeSlot);
+    } else if (type == 2) machine->WriteRegister(2, 0);
+    else machine->WriteRegister(2, 1);
+
+    IncreaseProgramCounter();
+    delete[] filename;
+}
+
+//----------------------------------------------------------------------
+// CloseFileHandler
+//  Close the file, we're done reading and writing to it.
+//  Return 0 if successful, -1 otherwise.
+//----------------------------------------------------------------------
+
+void
+CloseFileHandler()
+{
+    int fileId = machine->ReadRegister(4);
+    if (fileId < 0 || fileId > 9) {
+        DEBUG('a', "\n Unable to close file.");
+        printf("\n\n Unable to close file.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        return;
+    }
+
+    if (fileSystem->openf[fileId]) {
+        delete fileSystem->openf[fileId];
+        fileSystem->openf[fileId] = NULL;
+        machine->WriteRegister(2, 0);
+    } else machine->WriteRegister(2, -1);
+
+    IncreaseProgramCounter();
+}
+
+//----------------------------------------------------------------------
 // ReadIntHandler
 // 	Function to read integer input from user and return it.
 //	Return 0 if the input is not an integer.
@@ -316,6 +422,15 @@ ExceptionHandler(ExceptionType which)
             DEBUG('a', "\n Shutdown, initiated by user program.");
             printf("\n\n Shutdown, initiated by user program.");
             interrupt->Halt();
+            break;
+        case SC_CreateFile:
+            CreateFileHandler();
+            break;
+        case SC_Open:
+            OpenFileHandler();
+            break;
+        case SC_Close:
+            CloseFileHandler();
             break;
         case SC_ReadInt:
             ReadIntHandler();

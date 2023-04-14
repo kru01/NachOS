@@ -42,15 +42,37 @@
 				// calls to UNIX, until the real file system
 				// implementation is available
 class FileSystem {
+	OpenFile** openf;
+	int index;
+
   public:
-    FileSystem(bool format) {}
+    FileSystem(bool format) {
+        openf = new OpenFile*[10];
+		index = 0;
+		for (int i = 0; i < 10; i++) openf[i] = NULL;
+		this->Create("stdin", 0);
+		this->Create("stdout", 0);
+        openf[index++] = this->Open("stdin", 2);
+		openf[index++] = this->Open("stdout", 3);
+	}
+
+    ~FileSystem() {
+        for (int i = 0; i < 10; i++)
+		    if (openf[i] != NULL) delete openf[i];
+		delete[] openf;
+	}
 
     bool Create(char *name, int initialSize) { 
-	int fileDescriptor = OpenForWrite(name);
+        int fileDescriptor = OpenForWrite(name);
+        if (fileDescriptor == -1) return FALSE;
+        Close(fileDescriptor); 
+        return TRUE; 
+	}
 
-	if (fileDescriptor == -1) return FALSE;
-	Close(fileDescriptor); 
-	return TRUE; 
+    int GetFreeSlot() {
+        for (int i = 2; i < 10; i++)
+		    if (openf[i] == NULL) return i;
+		return -1;
 	}
 
     OpenFile* Open(char *name) {
@@ -60,6 +82,12 @@ class FileSystem {
 	  return new OpenFile(fileDescriptor);
       }
 
+    OpenFile* Open(char *name, int type) {
+        int fileDescriptor = OpenForReadWrite(name, FALSE);
+		if (fileDescriptor == -1) return NULL;
+		return new OpenFile(fileDescriptor, type);
+	}
+
     bool Remove(char *name) { return Unlink(name) == 0; }
 
 };
@@ -67,6 +95,9 @@ class FileSystem {
 #else // FILESYS
 class FileSystem {
   public:
+    OpenFile** openf;		// Store files that are in use.
+	int index;
+
     FileSystem(bool format);		// Initialize the file system.
 					// Must be called *after* "synchDisk" 
 					// has been initialized.
@@ -77,7 +108,10 @@ class FileSystem {
     bool Create(char *name, int initialSize);  	
 					// Create a file (UNIX creat)
 
+    int GetFreeSlot();		// Return an unoccupied slot
+
     OpenFile* Open(char *name); 	// Open a file (UNIX open)
+    OpenFile* Open(char *name, int type);
 
     bool Remove(char *name);  		// Delete a file (UNIX unlink)
 
