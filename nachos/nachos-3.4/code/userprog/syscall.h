@@ -27,14 +27,15 @@
 #define SC_Read		6
 #define SC_Write	7
 #define SC_Close	8
-#define SC_Fork		9
-#define SC_Yield	10
-#define SC_ReadInt	11
-#define SC_PrintInt	12
-#define SC_ReadChar	13
-#define SC_PrintChar	14
-#define SC_ReadString	15
-#define SC_PrintString	16
+#define SC_Seek		9
+#define SC_Fork		10
+#define SC_Yield	11
+#define SC_ReadInt	12
+#define SC_PrintInt	13
+#define SC_ReadChar	14
+#define SC_PrintChar	15
+#define SC_ReadString	16
+#define SC_PrintString	17
 
 #ifndef IN_ASM
 
@@ -103,19 +104,29 @@ int CreateFile(char *name);
  */
 OpenFileId Open(char *name, int type);
 
-/* Write "size" bytes from "buffer" to the open file. */
-void Write(char *buffer, int size, OpenFileId id);
-
 /* Read "size" bytes from the open file into "buffer".  
  * Return the number of bytes actually read -- if the open file isn't
  * long enough, or if it is an I/O device, and there aren't enough 
  * characters to read, return whatever is available (for I/O devices, 
  * you should always wait until you can return at least one character).
+ * Return -1 if encounter errors, -2 if reach EOF.
  */
-int Read(char *buffer, int size, OpenFileId id);
+int Read(char *buffer, int charcount, OpenFileId id);
+
+/* Write "size" bytes from "buffer" to the open file.
+ * Return the number of bytes actually written.
+ * Return -1 if encounter errors, -2 if reach EOF.
+ */
+int Write(char *buffer, int charcount, OpenFileId id);
 
 /* Close the file, we're done reading and writing to it. */
 void Close(OpenFileId id);
+
+/* Move the pointer in the file to the specified position, a position
+ * of -1 will move the pointer to the end of the file.
+ * Return the actual position in the file if successful, -1 otherwise.
+ */
+int Seek(int pos, OpenFileId id);
 
 
 
@@ -135,7 +146,8 @@ void Yield();
 
 
 
-/* System calls that provide standard operations: ReadInt, PrintInt, ReadChar, PrintChar, ReadString, PrintString.
+/* System calls that provide standard operations: ReadInt, PrintInt, ReadChar,
+ * PrintChar, ReadString, PrintString.
  * To allow user interactions in a program.
  */
 

@@ -203,3 +203,14 @@ OpenFile::Length()
 { 
     return hdr->FileLength(); 
 }
+
+//----------------------------------------------------------------------
+// OpenFile::GetCurrentPos
+//	Return the current position within the file (seekPosition).
+//----------------------------------------------------------------------
+
+int
+OpenFile::GetCurrentPos() 
+{ 
+    return seekPosition;
+}

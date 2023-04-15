@@ -142,12 +142,11 @@ FileSystem::FileSystem(bool format)
     }
 
     openf = new OpenFile*[10];
-	index = 0;
     for (int i = 0; i < 10; i++) openf[i] = NULL;
     this->Create("stdin", 0);
     this->Create("stdout", 0);
-    openf[index++] = this->Open("stdin", 2);
-	openf[index++] = this->Open("stdout", 3);
+    openf[0] = this->Open("stdin", 2);
+    openf[1] = this->Open("stdout", 3);
 }
 
 //----------------------------------------------------------------------
@@ -271,7 +270,7 @@ FileSystem::Open(char *name, int type)
     directory->FetchFrom(directoryFile);
     sector = directory->Find(name);
     if (sector >= 0)
-	    openf[freeSlot] = new OpenFile(sector, type);	// name was found in directory 
+        openf[freeSlot] = new OpenFile(sector, type);	// name was found in directory 
     delete directory;
     return openf[freeSlot];				// return NULL if not found
 }

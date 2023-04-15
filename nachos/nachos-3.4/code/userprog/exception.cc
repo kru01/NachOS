@@ -163,6 +163,103 @@ OpenFileHandler()
 }
 
 //----------------------------------------------------------------------
+// ReadFileHandler
+//  Read "size" bytes from the open file into "buffer".  
+//  Return the number of bytes actually read -- if the open file isn't
+//  long enough, or if it is an I/O device, and there aren't enough 
+//  characters to read, return whatever is available (for I/O devices, 
+//  you should always wait until you can return at least one character).
+//  Return -1 if encounter errors, -2 if reach EOF.
+//----------------------------------------------------------------------
+
+void
+ReadFileHandler()
+{
+    // get buffer address from r4 and charcount from r5, get file id from r6
+    int virtAddr = machine->ReadRegister(4), charcount = machine->ReadRegister(5);
+    int fileId = machine->ReadRegister(6);
+
+    if (fileId < 0 || fileId > 9		// if the id is outside the file table
+     || fileSystem->openf[fileId] == NULL	// if the file doesn't exist
+     || fileSystem->openf[fileId]->type == 3) {	// if the file is of stdout type
+        DEBUG('a', "\n Unable to read file.");
+        printf("\n\n Unable to read file.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        return;
+    }
+
+    int oldPos = fileSystem->openf[fileId]->GetCurrentPos(), newPos = 0;
+    char* buffer = machine->User2System(virtAddr, charcount);
+
+    if (fileSystem->openf[fileId]->type == 2) {	// if the file is of stdin type
+        int size = gSynchConsole->Read(buffer, charcount);
+        machine->System2User(virtAddr, size, buffer);
+        machine->WriteRegister(2, size);
+        IncreaseProgramCounter();
+        delete[] buffer;
+        return;
+    }
+
+    if (fileSystem->openf[fileId]->Read(buffer, charcount) > 0) {
+        newPos = fileSystem->openf[fileId]->GetCurrentPos();
+        machine->System2User(virtAddr, newPos - oldPos, buffer);
+        machine->WriteRegister(2, newPos - oldPos);
+    } else machine->WriteRegister(2, -2);
+
+    IncreaseProgramCounter();
+    delete[] buffer;
+}
+
+//----------------------------------------------------------------------
+// WriteFileHandler
+//  Write "size" bytes from "buffer" to the open file.
+//  Return the number of bytes actually written.
+//  Return -1 if encounter errors, -2 if reach EOF.
+//----------------------------------------------------------------------
+
+void
+WriteFileHandler()
+{
+    // get buffer address from r4 and charcount from r5, get file id from r6
+    int virtAddr = machine->ReadRegister(4), charcount = machine->ReadRegister(5);
+    int fileId = machine->ReadRegister(6);
+
+    if (fileId < 0 || fileId > 9		// if the id is outside the file table
+     || fileSystem->openf[fileId] == NULL	// if the file doesn't exist
+     || fileSystem->openf[fileId]->type == 1	// if the file is of read-only type
+     || fileSystem->openf[fileId]->type == 2) {	// if the file is of stdin type
+        DEBUG('a', "\n Unable to write to file.");
+        printf("\n\n Unable to write to file.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        return;
+    }
+
+    int oldPos = fileSystem->openf[fileId]->GetCurrentPos(), newPos = 0;
+    char* buffer = machine->User2System(virtAddr, charcount);
+
+    if (fileSystem->openf[fileId]->type == 0)	// if the file is of read and write type
+        if (fileSystem->openf[fileId]->Write(buffer, charcount) > 0) {
+            newPos = fileSystem->openf[fileId]->GetCurrentPos();
+            machine->WriteRegister(2, newPos - oldPos);
+            IncreaseProgramCounter();
+            delete[] buffer;
+            return;
+        }
+
+    int i = 0;
+    while (buffer[i] != 0 && buffer[i] != '\n')
+        gSynchConsole->Write(buffer + i++, 1);
+
+    buffer[i] = '\n';
+    gSynchConsole->Write(buffer + i, 1);
+    machine->WriteRegister(2, i - 1);
+    IncreaseProgramCounter();
+    delete[] buffer;
+}
+
+//----------------------------------------------------------------------
 // CloseFileHandler
 //  Close the file, we're done reading and writing to it.
 //  Return 0 if successful, -1 otherwise.
@@ -185,6 +282,43 @@ CloseFileHandler()
         fileSystem->openf[fileId] = NULL;
         machine->WriteRegister(2, 0);
     } else machine->WriteRegister(2, -1);
+
+    IncreaseProgramCounter();
+}
+
+//----------------------------------------------------------------------
+// SeekFileHandler
+//  Move the pointer in the file to the specified position, a position
+//  of -1 will move the pointer to the end of the file.
+//  Return the actual position in the file if successful, -1 otherwise.
+//----------------------------------------------------------------------
+
+void
+SeekFileHandler()
+{
+    // get seek position from r4 and file id from r5
+    int pos = machine->ReadRegister(4), fileId = machine->ReadRegister(5);
+
+    if (fileId < 0 || fileId > 9		// if the id is outside the file table
+     || fileId == 0 || fileId == 1		// if attempting to seek on console
+     || fileSystem->openf[fileId] == NULL) {	// if the file doesn't exist
+        DEBUG('a', "\n Unable to seek.");
+        printf("\n\n Unable to seek.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        return;
+    }
+
+    pos = (pos == -1) ? fileSystem->openf[fileId]->Length() : pos;
+
+    if (pos < 0 || pos > fileSystem->openf[fileId]->Length()) {
+        DEBUG('a', "\n Invalid position, cannot seek.");
+        printf("\n\n Invalid position, cannot seek.");
+        machine->WriteRegister(2, -1);
+    } else {
+        fileSystem->openf[fileId]->Seek(pos);
+        machine->WriteRegister(2, pos);
+    }
 
     IncreaseProgramCounter();
 }
@@ -429,8 +563,17 @@ ExceptionHandler(ExceptionType which)
         case SC_Open:
             OpenFileHandler();
             break;
+        case SC_Read:
+            ReadFileHandler();
+            break;
+        case SC_Write:
+            WriteFileHandler();
+            break;
         case SC_Close:
             CloseFileHandler();
+            break;
+        case SC_Seek:
+            SeekFileHandler();
             break;
         case SC_ReadInt:
             ReadIntHandler();
