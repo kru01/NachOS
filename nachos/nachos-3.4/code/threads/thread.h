@@ -39,6 +39,7 @@
 
 #include "copyright.h"
 #include "utility.h"
+#include <stdio.h>
 
 #ifdef USER_PROGRAM
 #include "machine.h"
@@ -53,7 +54,7 @@
 
 // Size of the thread's private execution stack.
 // WATCH OUT IF THIS ISN'T BIG ENOUGH!!!!!
-#define StackSize	(4 * 1024)	// in words
+#define StackSize	(4 * 1024 * 16)	// in words
 
 
 // Thread state
@@ -86,6 +87,9 @@ class Thread {
 					// NOTE -- thread being deleted
 					// must not be running when delete 
 					// is called
+    int processID;			// the ID of the process this thread is
+					// managing
+    int exitStatus;			// the exit status (exitcode)
 
     // basic thread operations
 
@@ -127,6 +131,8 @@ class Thread {
     void RestoreUserState();		// restore user-level register state
 
     AddrSpace *space;			// User code this thread is running.
+
+    void FreeSpace();			// free the space occupied by the thread
 #endif
 };
 

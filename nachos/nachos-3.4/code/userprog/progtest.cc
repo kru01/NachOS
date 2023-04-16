@@ -44,6 +44,33 @@ StartProcess(char *filename)
 					// by doing the syscall "exit"
 }
 
+//----------------------------------------------------------------------
+// StartProcessID
+// 	Run a user program.  Locate the file using the process id, load
+//	it into memory, and jump to it.
+//----------------------------------------------------------------------
+
+void
+StartProcessID(int pid)
+{
+    char *filename = pTab->GetFileName(pid);
+    AddrSpace *space = new AddrSpace(filename);
+
+    if (space == NULL) {
+	printf("Unable to allocate space\n");
+	return;
+    }
+
+    currentThread->space = space;
+    space->InitRegisters();		// set the initial register values
+    space->RestoreState();		// load page table register
+
+    machine->Run();			// jump to the user progam
+    ASSERT(FALSE);			// machine->Run never returns;
+					// the address space exits
+					// by doing the syscall "exit"
+}
+
 // Data structures needed for the console test.  Threads making
 // I/O requests wait on a Semaphore to delay until the I/O completes.
 
