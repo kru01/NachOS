@@ -18,24 +18,27 @@
 /* system call codes -- used by the stubs to tell the kernel which system call
  * is being asked for
  */
-#define SC_Halt		0
-#define SC_Exit		1
-#define SC_Exec		2
-#define SC_Join		3
-#define SC_CreateFile	4
-#define SC_Open		5
-#define SC_Read		6
-#define SC_Write	7
-#define SC_Close	8
-#define SC_Seek		9
-#define SC_Fork		10
-#define SC_Yield	11
-#define SC_ReadInt	12
-#define SC_PrintInt	13
-#define SC_ReadChar	14
-#define SC_PrintChar	15
-#define SC_ReadString	16
-#define SC_PrintString	17
+#define SC_Halt			0
+#define SC_Exit			1
+#define SC_Exec			2
+#define SC_Join			3
+#define SC_CreateFile		4
+#define SC_Open			5
+#define SC_Read			6
+#define SC_Write		7
+#define SC_Close		8
+#define SC_Seek			9
+#define SC_Fork			10
+#define SC_Yield		11
+#define SC_ReadInt		12
+#define SC_PrintInt		13
+#define SC_ReadChar		14
+#define SC_PrintChar		15
+#define SC_ReadString		16
+#define SC_PrintString		17
+#define SC_CreateSemaphore	18
+#define SC_Wait			19
+#define SC_Signal		20
 
 #ifndef IN_ASM
 
@@ -177,6 +180,27 @@ void ReadString(char buffer[], int length);
 /* Print string to console (using SynchConsole class).
  */
 void PrintString(char buffer[]);
+
+
+
+/* System calls that provide multi-threading ability: CreateSemaphore, Wait, Signal.
+ * To allow the simultaneous execution of multiple programs.
+ */
+
+/* Create a new semaphore.
+ * Return 0 if successful, -1 otherwise.
+ */
+int CreateSemaphore(char *name, int semval);
+
+/* Put a semaphore into wait mode.
+ * Return 0 if successful, -1 otherwise.
+ */
+int Wait(char *name);
+
+/* Send signal to free a semaphore.
+ * Return 0 if successful, -1 otherwise.
+ */
+int Signal(char *name);
 
 #endif /* IN_ASM */
 

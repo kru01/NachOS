@@ -84,6 +84,82 @@ IncreaseProgramCounter()
 }
 
 //----------------------------------------------------------------------
+// ExitHandler
+// 	This user program is done (status = 0 means exited normally).
+//----------------------------------------------------------------------
+
+void
+ExitHandler()
+{
+    int status = machine->ReadRegister(4);
+    if (status != 0) {
+        IncreaseProgramCounter();
+        return;
+    }
+    int exitcode = pTab->ExitUpdate(status);
+    machine->WriteRegister(2, exitcode);
+    currentThread->FreeSpace();
+    currentThread->Finish();
+    IncreaseProgramCounter();
+}
+
+//----------------------------------------------------------------------
+// ExecHandler
+// 	Run the executable, stored in the Nachos file "name", and return
+//	the address space identifier.
+//	Return process id if successful, -1 otherwise.
+//----------------------------------------------------------------------
+
+void
+ExecHandler()
+{
+    // get buffer address from r4
+    int virtAddr = machine->ReadRegister(4);
+    int maxNameLen = 32;
+    char* filename = machine->User2System(virtAddr, maxNameLen + 1);
+
+    if (filename == NULL) {
+        DEBUG('a', "\n Unable to read filename.");
+        printf("\n\n Unable to read filename.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        return;
+    }
+
+    OpenFile* oFile = fileSystem->Open(filename);
+    if (oFile == NULL) {
+        DEBUG('a', "\n Unable to open file.");
+        printf("\n\n Unable to open file.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        delete[] filename;
+        return;
+    }
+    delete oFile;	// the whole point of opening the file is to
+			// check its validity, nothing else
+
+    int id = pTab->ExecUpdate(filename);
+    machine->WriteRegister(2, id);
+    IncreaseProgramCounter();
+    delete[] filename;
+}
+
+//----------------------------------------------------------------------
+// JoinHandler
+// 	Only return once the the user program "id" has finished.  
+//	Return the exit status.
+//----------------------------------------------------------------------
+
+void
+JoinHandler()
+{
+    int id = machine->ReadRegister(4);
+    int exitcode = pTab->JoinUpdate(id);
+    machine->WriteRegister(2, exitcode);
+    IncreaseProgramCounter();
+}
+
+//----------------------------------------------------------------------
 // CreateFileHandler
 // 	Function to create a Nachos file, with "name".
 // 	Return 0 if successful, -1 otherwise.
@@ -97,21 +173,11 @@ CreateFileHandler()
     int maxNameLen = 32;
     char* filename = machine->User2System(virtAddr, maxNameLen + 1);
 
-    if (filename == NULL) {
+    if (filename == NULL || strlen(filename) == 0) {
         DEBUG('a', "\n Unable to read filename.");
         printf("\n\n Unable to read filename.");
         machine->WriteRegister(2, -1);
         IncreaseProgramCounter();
-        delete[] filename;
-        return;
-    }
-
-    if (strlen(filename) == 0) {
-        DEBUG('a', "\n Invalid filename inputted.");
-        printf("\n\n Invalid filename inputted.");
-        machine->WriteRegister(2, -1);
-        IncreaseProgramCounter();
-        delete[] filename;
         return;
     }
 
@@ -119,10 +185,8 @@ CreateFileHandler()
         DEBUG('a', "\n Failed to create file.");
         printf("\n\n Failed to create file.");
         machine->WriteRegister(2, -1);
-    } else {
-        printf("\n\n File successfully created.");
-        machine->WriteRegister(2, 0);
-    }
+    } else machine->WriteRegister(2, 0);
+
     IncreaseProgramCounter();
     delete[] filename;
 }
@@ -179,7 +243,7 @@ ReadFileHandler()
     int virtAddr = machine->ReadRegister(4), charcount = machine->ReadRegister(5);
     int fileId = machine->ReadRegister(6);
 
-    if (fileId < 0 || fileId > 9		// if the id is outside the file table
+    if (fileId < 0 || fileId > 14		// if the id is outside the file table
      || fileSystem->openf[fileId] == NULL	// if the file doesn't exist
      || fileSystem->openf[fileId]->type == 3) {	// if the file is of stdout type
         DEBUG('a', "\n Unable to read file.");
@@ -225,7 +289,7 @@ WriteFileHandler()
     int virtAddr = machine->ReadRegister(4), charcount = machine->ReadRegister(5);
     int fileId = machine->ReadRegister(6);
 
-    if (fileId < 0 || fileId > 9		// if the id is outside the file table
+    if (fileId < 0 || fileId > 14		// if the id is outside the file table
      || fileSystem->openf[fileId] == NULL	// if the file doesn't exist
      || fileSystem->openf[fileId]->type == 1	// if the file is of read-only type
      || fileSystem->openf[fileId]->type == 2) {	// if the file is of stdin type
@@ -269,7 +333,7 @@ void
 CloseFileHandler()
 {
     int fileId = machine->ReadRegister(4);
-    if (fileId < 0 || fileId > 9) {
+    if (fileId < 0 || fileId > 14) {
         DEBUG('a', "\n Unable to close file.");
         printf("\n\n Unable to close file.");
         machine->WriteRegister(2, -1);
@@ -299,7 +363,7 @@ SeekFileHandler()
     // get seek position from r4 and file id from r5
     int pos = machine->ReadRegister(4), fileId = machine->ReadRegister(5);
 
-    if (fileId < 0 || fileId > 9		// if the id is outside the file table
+    if (fileId < 0 || fileId > 14		// if the id is outside the file table
      || fileId == 0 || fileId == 1		// if attempting to seek on console
      || fileSystem->openf[fileId] == NULL) {	// if the file doesn't exist
         DEBUG('a', "\n Unable to seek.");
@@ -489,13 +553,120 @@ PrintStringHandler()
     int virtAddr = machine->ReadRegister(4), MAX_BUFFER = 255;
     char* buffer = machine->User2System(virtAddr, MAX_BUFFER);
 
-    int i = 0; // print one character at a time until we encounter
-    while (buffer[i] != 0 && buffer[i] != '\n') { // terminating char or endline
-        gSynchConsole->Write(buffer + i, 1);
-        i++;
-    }
+    int len = 0;
+    while (buffer[len] != 0) len++;
+
+    gSynchConsole->Write(buffer, len + 1);
     IncreaseProgramCounter();
     delete[] buffer;
+}
+
+//----------------------------------------------------------------------
+// CreateSemaphoreHandler
+// 	Create a new semaphore.
+//	Return 0 if successful, -1 otherwise.
+//----------------------------------------------------------------------
+
+void
+CreateSemaphoreHandler()
+{
+    // get buffer address from r4 and semval from r5
+    int virtAddr = machine->ReadRegister(4), semval = machine->ReadRegister(5);
+    int maxNameLen = 32;
+    char* filename = machine->User2System(virtAddr, maxNameLen + 1);
+
+    if (filename == NULL) {
+        DEBUG('a', "\n Unable to read filename.");
+        printf("\n\n Unable to read filename.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        return;
+    }
+
+    int status = semTab->Create(filename, semval);
+    if (status == -1) {
+        DEBUG('a', "\n Unable to create semaphore.");
+        printf("\n\n Unable to create semaphore.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        delete[] filename;
+        return;
+    }
+    machine->WriteRegister(2, status);
+    IncreaseProgramCounter();
+    delete[] filename;
+}
+
+//----------------------------------------------------------------------
+// WaitHandler
+// 	Put a semaphore into wait mode.
+//	Return 0 if successful, -1 otherwise.
+//----------------------------------------------------------------------
+
+void
+WaitHandler()
+{
+    // get buffer address from r4
+    int virtAddr = machine->ReadRegister(4);
+    int maxNameLen = 32;
+    char* filename = machine->User2System(virtAddr, maxNameLen + 1);
+
+    if (filename == NULL) {
+        DEBUG('a', "\n Unable to read filename.");
+        printf("\n\n Unable to read filename.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        return;
+    }
+
+    int status = semTab->Wait(filename);
+    if (status == -1) {
+        DEBUG('a', "\n Semaphore doesn't exist.");
+        printf("\n\n Semaphore doesn't exist.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        delete[] filename;
+        return;
+    }
+    machine->WriteRegister(2, status);
+    IncreaseProgramCounter();
+    delete[] filename;
+}
+
+//----------------------------------------------------------------------
+// SignalHandler
+// 	Send signal to free a semaphore.
+//	Return 0 if successful, -1 otherwise.
+//----------------------------------------------------------------------
+
+void
+SignalHandler()
+{
+    // get buffer address from r4
+    int virtAddr = machine->ReadRegister(4);
+    int maxNameLen = 32;
+    char* filename = machine->User2System(virtAddr, maxNameLen + 1);
+
+    if (filename == NULL) {
+        DEBUG('a', "\n Unable to read filename.");
+        printf("\n\n Unable to read filename.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        return;
+    }
+
+    int status = semTab->Signal(filename);
+    if (status == -1) {
+        DEBUG('a', "\n Semaphore doesn't exist.");
+        printf("\n\n Semaphore doesn't exist.");
+        machine->WriteRegister(2, -1);
+        IncreaseProgramCounter();
+        delete[] filename;
+        return;
+    }
+    machine->WriteRegister(2, status);
+    IncreaseProgramCounter();
+    delete[] filename;
 }
 
 //----------------------------------------------------------------------
@@ -557,6 +728,15 @@ ExceptionHandler(ExceptionType which)
             printf("\n\n Shutdown, initiated by user program.");
             interrupt->Halt();
             break;
+        case SC_Exit:
+            ExitHandler();
+            break;
+        case SC_Exec:
+            ExecHandler();
+            break;
+        case SC_Join:
+            JoinHandler();
+            break;
         case SC_CreateFile:
             CreateFileHandler();
             break;
@@ -592,6 +772,15 @@ ExceptionHandler(ExceptionType which)
             break;
         case SC_PrintString:
             PrintStringHandler();
+            break;
+        case SC_CreateSemaphore:
+            CreateSemaphoreHandler();
+            break;
+        case SC_Wait:
+            WaitHandler();
+            break;
+        case SC_Signal:
+            SignalHandler();
             break;
         default:
             printf("\n Unexpected user mode exception %d %d\n", which, type);

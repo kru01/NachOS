@@ -46,8 +46,8 @@ class FileSystem {
     OpenFile** openf;
 
     FileSystem(bool format) {
-        openf = new OpenFile*[10];
-	for (int i = 0; i < 10; i++) openf[i] = NULL;
+        openf = new OpenFile*[15];
+	for (int i = 0; i < 15; i++) openf[i] = NULL;
 	this->Create("stdin", 0);
 	this->Create("stdout", 0);
         openf[0] = this->Open("stdin", 2);
@@ -55,7 +55,7 @@ class FileSystem {
     }
 
     ~FileSystem() {
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 15; i++)
             if (openf[i] != NULL) delete openf[i];
         delete[] openf;
     }
@@ -68,7 +68,7 @@ class FileSystem {
     }
 
     int GetFreeSlot() {
-        for (int i = 2; i < 10; i++)
+        for (int i = 2; i < 15; i++)
             if (openf[i] == NULL) return i;
         return -1;
     }

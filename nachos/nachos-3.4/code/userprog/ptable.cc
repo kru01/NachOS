@@ -37,10 +37,11 @@ PTable::PTable(int size)
 
 PTable::~PTable()
 {
-    if (bm != 0) delete[] bm;
-    for (int i = 0; i < psize; i++)
-        if (pcb[i] != 0) delete pcb[i];
-    if (bmsem != 0) delete[] bmsem;
+    if (bm != 0) delete bm;
+    //for (int i = 0; i < psize; i++)	// for some reasons, trying to delete keeps throwing
+    //    if (pcb[i]) delete pcb[i];	// segmentation fault. I was unable to pinpoint the
+					// problem so let's just pretend this doesn't exist
+    if (bmsem != 0) delete bmsem;
 }
 
 //----------------------------------------------------------------------

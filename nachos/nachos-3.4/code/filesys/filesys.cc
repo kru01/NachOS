@@ -141,8 +141,8 @@ FileSystem::FileSystem(bool format)
         directoryFile = new OpenFile(DirectorySector);
     }
 
-    openf = new OpenFile*[10];
-    for (int i = 0; i < 10; i++) openf[i] = NULL;
+    openf = new OpenFile*[15];
+    for (int i = 0; i < 15; i++) openf[i] = NULL;
     this->Create("stdin", 0);
     this->Create("stdout", 0);
     openf[0] = this->Open("stdin", 2);
@@ -227,7 +227,7 @@ FileSystem::Create(char *name, int initialSize)
 //----------------------------------------------------------------------
 
 int FileSystem::GetFreeSlot() {
-    for (int i = 2; i < 10; i++)
+    for (int i = 2; i < 15; i++)
         if (openf[i] == NULL) return i;
     return -1;
 }
