@@ -22,6 +22,8 @@
         <li><a href="#to-run-a-program">To run a program</a></li>
 	<li><a href="#to-make-a-program">To make a program</a></li>
 	<li><a href="#to-make-a-new-system-call">To make a new System call</a></li>
+	<li><a href="#to-make-a-new-class">To make a new class</a></li>
+	<li><a href="#to-make-a-new-global-pointer">To make a new global pointer</a></li>
       </ul>
     </li>
     <li><a href="#built-with">Built With</a></li>
@@ -31,8 +33,11 @@
 
 ## Content
 
+- ***Project 1: NachOS system calls.*** Details are in `Guides (vietnamese)/ProjectInfo`.
+- ***Project 2: Multi-threading and synchronization.*** Details are in `Guides (vietnamese)/ProjectInfo2`.
 - Read the guides, especially ProjectInfo, for full details.
    - They are in vietnamese, ***maybe*** I'll do some translating once I find the time.
+- Alternatively, the commit history serves as a chronological documentation of which task was implemented first.
 
 ## Getting Started
 
@@ -92,7 +97,7 @@ All of the user-level programs are stored in `nachos/nachos-3.4/code/test/`.
 1. Open `Makefile` in `test/` folder.
 1. Add your program's name on line 38.
    ```make
-   all: halt shell matmult sort readprint help ascii bubblesort programName
+   all: halt shell ... people taps programName
    ```
 1. Scroll down and add the below lines of code to the file.
    ```make
@@ -149,6 +154,95 @@ All of the user-level programs are stored in `nachos/nachos-3.4/code/test/`.
             break;
          ...
       }
+      ```
+1. Recompile NachOS.
+
+### To make a new class
+
+- Let's use an already written class as an example.
+   ```cpp
+   class PTable { ... };
+   ```
+
+1. Navigate to the appropriate folder for the class.
+   - Since `PTable` is a process-managing table that assists in the implementation of system calls that enable multi-threading ability. It is only proper that we put its files in `nachos/nachos-3.4/code/userprog/`, the folder where we provide tools for user programs.
+1. Create `.h` and `.cc` files then implement the class in them.
+   - **It is ***imperative*** that you follow the formats and conventions as closely as possible.** Not only does this help create a sense of uniformity between the files, it also mitigates *your brain splitting* and *you wanting to gouge your eyes out* while debugging.
+   - **I would implore you to just copy one of the existing `.h` and `.cc` files then modify them into the new class**.
+   - After finishing, we have ourselves `ptable.h` and `ptable.cc`.
+1. Navigate to `nachos/nachos-3.4/code/` and open `Makefile.common`.
+   - Add `../folder/filename.h` to `USERPROG_H`. If you don't want to put your file on the last line, use `../folder/filename.h\`.
+   ```gas
+   USERPROG_H = ../userprog/addrspace.h\
+            ...
+            ../userprog/ptable.h\
+            ../userprog/stable.h
+   ```
+   - Add `../folder/filename.cc` to `USERPROG_C`. If you don't want to put your file on the last line, use `../folder/filename.cc\`.
+   ```gas
+   USERPROG_C = ../userprog/addrspace.cc\
+            ...
+            ../userprog/ptable.cc\
+            ../userprog/stable.cc
+   ```
+   - Add `filename.o` to `USERPROG_O`.
+   ```gas
+   USERPROG_O = addrspace.o bitmap.o exception.o progtest.o console.o machine.o \
+            mipssim.o translate.o synchcons.o pcb.o ptable.o stable.o
+   ```
+1. Recompile NachOS.
+
+### To make a new global pointer
+
+- Let's use an already written global pointer as an example.
+   ```cpp
+   class PTable* pTab;
+   ```
+
+1. Navigate to `nachos/nachos-3.4/threads/` and open `system.h`.
+   1. Include `filename.h` file that contains the datatype of the pointer.
+      ```cpp
+      #include "copyright.h"
+      ...
+      #include "ptable.h"
+      #include "stable.h"
+      ```
+   1. Declare the pointer as global by `extern`ing it.
+      ```cpp
+      #ifdef USER_PROGRAM
+      #include "machine.h"
+      ...
+      extern PTable* pTab;		// process-managing table
+      extern STable* semTab;		// semaphore-managing table
+      #endif
+      ```
+1. In the same folder, open `system.cc`.
+   1. Declare the pointer.
+      ```cpp
+      #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
+      Machine *machine;	// user program memory and registers
+      ...
+      PTable* pTab;		// process-managing table
+      STable* semTab;		// semaphore-managing table
+      #endif
+      ```
+   1. Define the pointer (Initialize it).
+      ```cpp
+      #ifdef USER_PROGRAM
+      machine = new Machine(debugUserProg);	// this must come first
+      ...
+      pTab = new PTable(10);
+      semTab = new STable();
+      #endif
+      ```
+   1. Delete the pointer (Free the memory allocated to it).
+      ```cpp
+      #ifdef USER_PROGRAM
+      delete machine;
+      ...
+      delete pTab;
+      delete semTab;
+      #endif
       ```
 1. Recompile NachOS.
 
