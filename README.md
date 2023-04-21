@@ -171,6 +171,7 @@ All of the user-level programs are stored in `nachos/nachos-3.4/code/test/`.
    - **I would implore you to just copy one of the existing `.h` and `.cc` files then modify them into the new class**.
    - After finishing, we have ourselves `ptable.h` and `ptable.cc`.
 1. Navigate to `nachos/nachos-3.4/code/` and open `Makefile.common`.
+   - Declare all your files, i.e., `.h` and `.cc`, at the section corresponding to the folder you implemented your class in. For our current `PTable`, as we put its files in `nachos/nachos-3.4/code/userprog/`, we will walk through the process of declaring the files in the `userprog` section as an example.
    - Add `../folder/filename.h` to `USERPROG_H`. If you don't want to put your file on the last line, use `../folder/filename.h\`.
    ```gas
    USERPROG_H = ../userprog/addrspace.h\
