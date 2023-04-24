@@ -76,6 +76,8 @@
    Cleaning up...
    ```
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ## Usage
 
 ### To compile NachOS
@@ -108,6 +110,8 @@ All of the user-level programs are stored in `nachos/nachos-3.4/code/test/`.
 	   ../bin/coff2noff programName.coff programName
    ```
 1. Recompile NachOS.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### To make a new System call
 
@@ -157,6 +161,8 @@ All of the user-level programs are stored in `nachos/nachos-3.4/code/test/`.
       ```
 1. Recompile NachOS.
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### To make a new class
 
 - Let's use an already written class as an example.
@@ -192,6 +198,8 @@ All of the user-level programs are stored in `nachos/nachos-3.4/code/test/`.
             mipssim.o translate.o synchcons.o pcb.o ptable.o stable.o
    ```
 1. Recompile NachOS.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### To make a new global pointer
 
